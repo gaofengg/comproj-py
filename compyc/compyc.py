@@ -1,5 +1,4 @@
 import compileall
-import datetime
 import logging
 import os
 from pathlib import Path
@@ -22,23 +21,42 @@ def check_setting_and_env():
 @click.option('-p', '--path', default='.', type=click.Path(), help='Path to the project.')
 @click.option('-r', '--reserve', default=True, type=bool, help='True means Reserve the project source directory.')
 @click.option('-v', '--version', default=None, type=str, help='Specify the version number.')
+# 关于 path 的说明：
+# 如果 path 以 / 结尾，会将 path 当成一个目录，并将目录中的每一个子目录当成一个项目迭代编译
+# 否则 path 会被当成一个独立的项目编译
 def compile(path: str, reserve: bool, version: str):
     # Read the number of files and directories next to the folder specified by path
     if os.name == 'nt':
         import win32api
         import win32con
 
-    def file_is_hidden(f):
+    def ignore_files(f: str):
+        # ignore hide files
         if os.name == 'nt':
+            if os.path.isfile(f):
+                click.echo(
+                    f'WARNING: {f} is a file and should be contained in a folder.')
+                return True
             attribute = win32api.GetFileAttributes(f)
-            return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
+            if not len(list(Path(f).rglob("*.py"))):
+                return True
+            return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM) or ('pyc' in f)
         else:
-            return f.startswith('.')  # linux-osx
+            # 如果指定目录下有文件，需要将文件包含进文件夹中
+            if os.path.isfile(f):
+                click.echo(
+                    f'WARNING: {f} is a file and should be contained in a folder.')
+                return True
+            # 过滤已经编译完成的目录
+            if not len(list(Path(f).rglob("*.py"))):
+                return True
+            return f.startswith('.') or ('pyc' in f)  # linux-osx
+
     file_list = []
     files_num = 0
     # current_day = '-' + datetime.date.today().strftime('%Y.%m.%d')  # 当前日期
     if path == '.' or path.endswith('/'):
-        file_list = [f for f in os.listdir(path) if not file_is_hidden(f)]
+        file_list = [f for f in os.listdir(path) if not ignore_files(f)]
         files_num = len(file_list)
     else:
         file_list.append(path)
@@ -56,7 +74,7 @@ def compile(path: str, reserve: bool, version: str):
             os.rmdir(src_file)
 
         if version == None:
-            version = random()
+            version = f'pyc.{random()}'
 
         edition: str = f'-{version}'  # 设置版本号
 
