@@ -12,7 +12,7 @@ What can be done?
 
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
-`$ pip install click`
+`$ pip install compyc`
 
 Click supports Python 3.6 and newer.
 
