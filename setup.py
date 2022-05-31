@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="compyc",
-    version="0.1.24",
+    version="0.1.25",
     author="GaoFeng",
     author_email="ymmtd@163.com",
     long_description=long_description,
